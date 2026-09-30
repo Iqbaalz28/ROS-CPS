@@ -1,0 +1,44 @@
+x-ros: &ros
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      UID: "${HOST_UID:-1000}"
+      GID: "${HOST_GID:-1000}"
+  image: robotics-lab:dev
+  network_mode: host
+  ipc: host
+  environment:
+    ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-31}
+    RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+    PYTHONUNBUFFERED: 1
+    RCUTILS_LOGGING_BUFFERED_STREAM: 1
+
+services:
+  talker:
+    <<: *ros
+    container_name: m01_talker
+    command: ros2 run demo_nodes_cpp talker
+    restart: unless-stopped
+
+  listener:
+    <<: *ros
+    container_name: m01_listener
+    command: ros2 run demo_nodes_py listener
+    depends_on: [talker]
+    restart: unless-stopped
+
+  dev:
+    <<: *ros
+    container_name: m01_dev
+    profiles: ["dev"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../src:/ws/src
+      - ws_build:/ws/build
+      - ws_install:/ws/install
+
+volumes:
+  ws_build:
+  ws_install:
